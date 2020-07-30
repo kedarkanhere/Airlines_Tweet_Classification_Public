@@ -53,7 +53,10 @@ nlp = spacy.load("en_core_web_sm")
 prefixes = ('\\n', ) + nlp.Defaults.prefixes
 stops = nlp.Defaults.stop_words
 
-df=pd.read_csv('/content/Usecase3_Dataset.csv')
+df=pd.read_csv('../input/Usecase3_Dataset.csv')
+
+#Create a function to cleanse the tweet for things like special characters, hashtags, urlss,@ signs.
+#Then we will use Spacy NLP to bring the words back to their root form
 
 def normalize(comment, lowercase, remove_stopwords):
     if lowercase:
@@ -79,12 +82,14 @@ df['Clean_Text']=df.text.apply(normalize,lowercase=True, remove_stopwords=True)
 
 df['Clean_Text'].head(25)
 
+#Create dummy variables for multiclass classification
 Y = pd.get_dummies(df['airline_sentiment']).values
 X=df["Clean_Text"].values
 
-#y_raw=df.to_numpy()
+#Train test split
 X_train, X_test, y_train, y_test = train_test_split(df["Clean_Text"].values,Y, test_size=0.2, random_state=87,stratify=Y)
 
+#Initialize the vocab size and fit text through tokenizer
 vocabulary_size = 4000
 tokenizer = Tokenizer(num_words= vocabulary_size)
 tokenizer.fit_on_texts(X_train)
@@ -94,9 +99,10 @@ X_train = pad_sequences(sequences, maxlen=100)
 sequences = tokenizer.texts_to_sequences(X_test)
 X_test = pad_sequences(sequences, maxlen=100)
 
-import keras
+#Clear backend keras session if any
 keras.backend.clear_session()
 
+#Start the sequential model
 model = Sequential()
 model.add(Embedding(vocabulary_size, 10, input_length=100))
 model.add(Conv1D(64, 3, activation='relu'))
@@ -106,12 +112,15 @@ model.add(LSTM(100))
 #model.add(Flatten())
 model.add(Dense(3, activation='softmax'))
 
+#print model summary
 model.summary()
 
+#Using categorical crossentropy and Nadam (Adam also gives similar results)
 model.compile(loss='categorical_crossentropy', optimizer='Nadam', metrics=['accuracy'])
-
+#Defining early stopping rounds. We dont wish to overfit
 stopping_rounds=EarlyStopping(monitor='val_loss', mode='max', verbose=1, patience=2)
 
+#Fitting the model
 hist=model.fit(X_train, y_train,
                     batch_size=128,
                     epochs=8,
@@ -121,10 +130,13 @@ hist=model.fit(X_train, y_train,
                     shuffle=True
           )
 
+#Predictions
 preds = model.predict(X_test)
 
+#Looking at PR & Accuracy, F1 score
 print(classification_report(np.argmax(y_test,axis=1),np.argmax(preds,axis=1)))
 
+#PLotting Validation vs Training history
 acc = hist.history['accuracy']
 val_acc = hist.history['val_accuracy']
 
