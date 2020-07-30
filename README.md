@@ -25,5 +25,10 @@ PyTorch.
 
 To run the whole code you can run engine.py present in src folder.
 
+Average accuracy achieved is 76%. 
+To Do:
+1) Create different models using BERT, Golve etc
+2) Use undersampling or oversampling to make dataset balanced
+3) Finding customer themes by using libraries like LIME and SHAP 
 
 Thanks!
